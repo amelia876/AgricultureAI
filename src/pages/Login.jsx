@@ -123,7 +123,7 @@ const Login = () => {
       {/* Navigation */}
       <nav className="navbar">
         <div className="nav-brand">
-          <h2>🌱 AgricultureAI</h2>
+          <h2>🌱 YaadWise</h2>
         </div>
         <div className="nav-links">
           <button 
