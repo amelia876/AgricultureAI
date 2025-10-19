@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { auth, db } from "../firebase";
 import { signOut } from "firebase/auth";
 
+
 import { 
   collection, 
   getDocs, 
@@ -17,7 +18,7 @@ import {
   orderBy,
   serverTimestamp 
 } from "firebase/firestore";
-import './FarmerDashboard.css';
+import './FarmerDashBoard.css';
 
 const FarmerDashboard = () => {
   const [user, setUser] = useState(null);
