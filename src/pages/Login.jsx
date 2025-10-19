@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { auth } from "../firebase";
+import { auth, db } from "../firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
+import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import './Login.css';
 
 const Login = () => {
@@ -36,11 +37,59 @@ const Login = () => {
     }
 
     try {
-      await signInWithEmailAndPassword(auth, formData.email, formData.password);
-      // Login successful - redirect to admin dashboard
-      navigate("/admin");
+      console.log("Starting login process...");
+      
+      // Sign in with Firebase Auth
+      const userCredential = await signInWithEmailAndPassword(
+        auth, 
+        formData.email, 
+        formData.password
+      );
+      
+      const user = userCredential.user;
+      console.log("Firebase Auth login successful:", user.uid);
+
+      // Fetch user data from Firestore
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        console.log("User data fetched:", userData);
+        
+        // Update last login timestamp
+        await updateDoc(doc(db, "users", user.uid), {
+          lastLogin: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+
+        console.log("Last login timestamp updated");
+        
+        // Redirect based on user role
+        if (userData.role === 'farmer') {
+          navigate("/farmer-dashboard");
+        } else if (userData.role === 'admin') {
+          navigate("/admin-dashboard");
+        } else if (userData.role === 'agriculture-expert') {
+          navigate("/expert-dashboard");
+        } else if (userData.role === 'researcher') {
+          navigate("/researcher-dashboard");
+        } else if (userData.role === 'student') {
+          navigate("/student-dashboard");
+        } else {
+          // Default dashboard for other roles
+          navigate("/dashboard");
+        }
+
+      } else {
+        // User document doesn't exist (shouldn't happen if signup worked correctly)
+        console.error("User document not found in Firestore");
+        setError("User profile not found. Please contact support.");
+      }
+
     } catch (err) {
       console.error("Login error:", err);
+      console.error("Error code:", err.code);
+      console.error("Error message:", err.message);
       setError(getErrorMessage(err.code));
     } finally {
       setLoading(false);
@@ -62,6 +111,8 @@ const Login = () => {
         return "Too many failed attempts. Please try again later.";
       case "auth/network-request-failed":
         return "Network error. Please check your internet connection.";
+      case "permission-denied":
+        return "Database access denied. Please try again later.";
       default:
         return "Login failed. Please check your credentials and try again.";
     }
@@ -93,7 +144,11 @@ const Login = () => {
               <p>Sign in to your AgricultureAI account</p>
             </div>
             
-            {error && <div className="error-message">{error}</div>}
+            {error && (
+              <div className="error-message">
+                <strong>Error:</strong> {error}
+              </div>
+            )}
             
             <form onSubmit={handleLogin}>
               <div className="form-group">

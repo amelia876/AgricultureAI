@@ -2,8 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import Signup from './pages/Signup';
 import Login from './pages/Login';
-import AdminDashboard from './pages/AdminDashboard';
-import MessageBot from './pages/MessageBot';
+import FarmerDashboard from './pages/FarmerDashboard';
 
 function App() {
   return (
@@ -12,9 +11,8 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/bot" element={<MessageBot />} />
-        
+        <Route path="/farmer-dashboard" element={<FarmerDashboard />} />
+        {/* Add other routes as needed */}
       </Routes>
     </Router>
   );

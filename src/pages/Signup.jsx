@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { auth, db } from "../firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import './Signup.css';
 
 const Signup = () => {
@@ -52,6 +52,8 @@ const Signup = () => {
     }
 
     try {
+      console.log("Starting signup process...");
+      
       // Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(
         auth, 
@@ -60,23 +62,31 @@ const Signup = () => {
       );
       
       const user = userCredential.user;
+      console.log("Firebase Auth user created:", user.uid);
 
       // Save additional user data to Firestore
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
-        email: formData.email,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
+        email: formData.email.toLowerCase().trim(),
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
         role: formData.role,
-        createdAt: new Date(),
-        profileCompleted: false
+        createdAt: serverTimestamp(), // Use serverTimestamp for consistency
+        updatedAt: serverTimestamp(),
+        profileCompleted: true,
+        emailVerified: user.emailVerified,
+        lastLogin: serverTimestamp()
       });
 
-      // Redirect to dashboard
-      navigate("/admin");
+      console.log("Firestore user document created successfully");
+      
+      // Redirect to FarmerDashboard
+      navigate("/farmer-dashboard");
 
     } catch (err) {
       console.error("Signup error:", err);
+      console.error("Error code:", err.code);
+      console.error("Error message:", err.message);
       setError(getErrorMessage(err.code));
     } finally {
       setLoading(false);
@@ -93,8 +103,12 @@ const Signup = () => {
         return "Password is too weak. Please use a stronger password.";
       case "auth/network-request-failed":
         return "Network error. Please check your internet connection.";
+      case "auth/operation-not-allowed":
+        return "Email/password authentication is not enabled. Please contact support.";
+      case "permission-denied":
+        return "Database permission denied. Please make sure Firestore is set up correctly.";
       default:
-        return "Signup failed. Please try again.";
+        return `Signup failed: ${errorCode}. Please try again.`;
     }
   };
 
@@ -123,12 +137,16 @@ const Signup = () => {
             <p>Join AgricultureAI to get started with smart farming</p>
           </div>
           
-          {error && <div className="error-message">{error}</div>}
+          {error && (
+            <div className="error-message">
+              <strong>Error:</strong> {error}
+            </div>
+          )}
           
           <form onSubmit={handleSignup}>
             <div className="form-row">
               <div className="form-group">
-                <label htmlFor="firstName">First Name</label>
+                <label htmlFor="firstName">First Name *</label>
                 <input
                   type="text"
                   id="firstName"
@@ -143,7 +161,7 @@ const Signup = () => {
               </div>
               
               <div className="form-group">
-                <label htmlFor="lastName">Last Name</label>
+                <label htmlFor="lastName">Last Name *</label>
                 <input
                   type="text"
                   id="lastName"
@@ -159,7 +177,7 @@ const Signup = () => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="email">Email Address</label>
+              <label htmlFor="email">Email Address *</label>
               <input
                 type="email"
                 id="email"
@@ -174,7 +192,7 @@ const Signup = () => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="role">I am a:</label>
+              <label htmlFor="role">I am a: *</label>
               <select
                 id="role"
                 name="role"
@@ -192,7 +210,7 @@ const Signup = () => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="password">Password</label>
+              <label htmlFor="password">Password *</label>
               <input
                 type="password"
                 id="password"
@@ -200,7 +218,7 @@ const Signup = () => {
                 value={formData.password}
                 onChange={handleChange}
                 required
-                placeholder="Enter your password"
+                placeholder="Enter your password (min 6 characters)"
                 className="form-input"
                 disabled={loading}
                 minLength="6"
@@ -208,7 +226,7 @@ const Signup = () => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="confirmPassword">Confirm Password</label>
+              <label htmlFor="confirmPassword">Confirm Password *</label>
               <input
                 type="password"
                 id="confirmPassword"
@@ -221,6 +239,13 @@ const Signup = () => {
                 disabled={loading}
                 minLength="6"
               />
+            </div>
+
+            <div className="form-terms">
+              <label className="terms-label">
+                <input type="checkbox" required />
+                <span>I agree to the <a href="#terms">Terms of Service</a> and <a href="#privacy">Privacy Policy</a></span>
+              </label>
             </div>
 
             <button 
