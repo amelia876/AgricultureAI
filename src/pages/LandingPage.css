@@ -1,4 +1,11 @@
 /* Reset and Base Styles */
+html, body {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  overflow-x: hidden; /* prevents black bar caused by horizontal scroll */
+}
+
 * {
   margin: 0;
   padding: 0;
